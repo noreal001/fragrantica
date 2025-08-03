@@ -6,7 +6,7 @@ deep-translator==1.11.4
 openai==0.28.1
 
 # GoLogin официальный SDK
-gologin==1.0.0
+gologin==2025.7.7
 
 # Selenium для GoLogin
 selenium==4.15.2
