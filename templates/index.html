@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🌸 Fragrantica News</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>Fragrantica Parser</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -15,136 +14,96 @@
         
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #000;
+            color: #fff;
             min-height: 100vh;
-            color: #333;
             line-height: 1.6;
         }
         
         .container {
-            max-width: 900px;
+            max-width: 800px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 40px 20px;
         }
         
         .header {
             text-align: center;
-            margin-bottom: 40px;
-            color: white;
+            margin-bottom: 60px;
         }
         
         .header h1 {
-            font-size: 3em;
-            margin-bottom: 15px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-            font-weight: 700;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #fff;
         }
         
         .header p {
-            font-size: 1.3em;
-            opacity: 0.9;
+            font-size: 1.1em;
+            color: #888;
             font-weight: 300;
         }
         
         .main-card {
-            background: white;
-            border-radius: 20px;
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
             padding: 40px;
             margin-bottom: 30px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            backdrop-filter: blur(10px);
         }
         
-        .news-card {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            border-radius: 15px;
-            padding: 30px;
-            margin: 20px 0;
-            border-left: 5px solid #667eea;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            display: none;
-        }
-        
-        .news-card.show {
-            display: block;
-            animation: slideIn 0.5s ease-out;
-        }
-        
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .news-title {
-            font-size: 1.8em;
-            color: #667eea;
-            margin-bottom: 15px;
-            font-weight: 600;
-        }
-        
-        .news-date {
-            color: #6c757d;
+        .status {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 30px;
             font-size: 0.9em;
-            margin-bottom: 20px;
-            font-weight: 400;
+            color: #ccc;
         }
         
-        .news-content {
-            font-size: 1.1em;
-            line-height: 1.8;
-            color: #495057;
-        }
-        
-        .news-content p {
-            margin-bottom: 15px;
+        .status.error {
+            border-color: #ff4444;
+            color: #ff6666;
         }
         
         .get-news-btn {
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            color: white;
+            background: #fff;
+            color: #000;
             border: none;
-            padding: 18px 40px;
-            border-radius: 50px;
-            font-size: 1.2em;
-            cursor: pointer;
-            margin: 20px 0;
-            transition: all 0.3s ease;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            padding: 15px 30px;
+            font-size: 1.1em;
             font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            margin-bottom: 20px;
         }
         
         .get-news-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 12px 35px rgba(0,0,0,0.3);
+            background: #f0f0f0;
         }
         
         .get-news-btn:disabled {
-            opacity: 0.6;
+            background: #333;
+            color: #666;
             cursor: not-allowed;
-            transform: none;
         }
         
         .loading {
             display: none;
             text-align: center;
-            margin: 20px 0;
+            padding: 20px;
+            color: #ccc;
         }
         
         .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #333;
+            border-top: 3px solid #fff;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
             animation: spin 1s linear infinite;
             margin: 0 auto 15px;
         }
@@ -154,81 +113,82 @@
             100% { transform: rotate(360deg); }
         }
         
-        .status {
-            background: #f8f9fa;
-            border-radius: 15px;
-            padding: 25px;
-            margin: 20px 0;
-            border-left: 5px solid #667eea;
-            font-weight: 500;
-        }
-        
         .progress-container {
+            display: none;
             margin: 20px 0;
         }
         
         .progress-bar {
             width: 100%;
-            height: 8px;
-            background: #e9ecef;
-            border-radius: 4px;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
             overflow: hidden;
-            margin: 10px 0;
+            margin-bottom: 10px;
         }
         
         .progress-fill {
             height: 100%;
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            border-radius: 4px;
+            background: #fff;
             transition: width 0.3s ease;
         }
         
-        .emoji {
-            font-size: 1.2em;
-            margin: 0 5px;
+        .progress-text {
+            color: #ccc;
+            font-size: 0.9em;
+            text-align: center;
         }
         
-        .error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-            border-radius: 10px;
-            padding: 15px;
-            margin: 15px 0;
+        .news-card {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 30px;
+            margin-top: 20px;
+            display: none;
         }
         
-        .success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-            border-radius: 10px;
-            padding: 15px;
-            margin: 15px 0;
+        .news-card.show {
+            display: block;
+        }
+        
+        .news-title {
+            font-size: 1.5em;
+            color: #fff;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        
+        .news-date {
+            color: #888;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+        }
+        
+        .news-content {
+            font-size: 1em;
+            line-height: 1.7;
+            color: #ccc;
         }
         
         .footer {
             text-align: center;
-            color: white;
             margin-top: 40px;
-            opacity: 0.8;
+            color: #666;
+            font-size: 0.9em;
         }
         
         @media (max-width: 768px) {
             .container {
-                padding: 15px;
+                padding: 20px 15px;
             }
             
             .header h1 {
-                font-size: 2.2em;
+                font-size: 2em;
             }
             
             .main-card {
-                padding: 25px;
-            }
-            
-            .get-news-btn {
-                padding: 15px 30px;
-                font-size: 1.1em;
+                padding: 30px 20px;
             }
         }
     </style>
@@ -236,30 +196,29 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🌸 Fragrantica News</h1>
-            <p>Получайте самые свежие новости из мира парфюмерии</p>
+            <h1>Fragrantica Parser</h1>
+            <p>Получение и перевод новостей парфюмерии</p>
         </div>
         
         <div class="main-card">
             <div class="status" id="status">
-                <i class="fas fa-info-circle"></i> Готов к получению новостей
+                Готов к работе
             </div>
             
             <button class="get-news-btn" id="getNewsBtn" onclick="getLatestNews()">
-                <i class="fas fa-newspaper"></i>
                 Получить последнюю новость
             </button>
             
             <div class="loading" id="loading">
                 <div class="spinner"></div>
-                <p>Получаем свежие новости...</p>
+                <p>Получение новостей...</p>
             </div>
             
-            <div class="progress-container" id="progressContainer" style="display: none;">
+            <div class="progress-container" id="progressContainer">
                 <div class="progress-bar">
                     <div class="progress-fill" id="progressFill" style="width: 0%"></div>
                 </div>
-                <p id="progressText">Подготовка...</p>
+                <p class="progress-text" id="progressText">Подготовка...</p>
             </div>
             
             <div class="news-card" id="newsCard">
@@ -273,39 +232,37 @@
             <p>Powered by AI Translation Technology</p>
         </div>
     </div>
-
+    
     <script>
         let isProcessing = false;
         
         async function getLatestNews() {
             if (isProcessing) return;
-            
             isProcessing = true;
+            
             const btn = document.getElementById('getNewsBtn');
             const loading = document.getElementById('loading');
             const progressContainer = document.getElementById('progressContainer');
             const status = document.getElementById('status');
             const newsCard = document.getElementById('newsCard');
             
-            // Сброс состояния
+            // Reset state
             btn.disabled = true;
             loading.style.display = 'block';
             progressContainer.style.display = 'block';
             newsCard.classList.remove('show');
-            status.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Запуск парсера...';
+            status.textContent = 'Запуск парсера...';
             
             try {
-                // Запуск парсера
+                // Start parser
                 const parserResponse = await fetch('/api/start-parser');
                 const parserData = await parserResponse.json();
-                
                 if (!parserResponse.ok) {
                     throw new Error(parserData.error || 'Ошибка запуска парсера');
                 }
+                status.textContent = 'Парсинг новостей...';
                 
-                status.innerHTML = '<i class="fas fa-cog fa-spin"></i> Парсинг новостей...';
-                
-                // Мониторинг прогресса
+                // Monitor progress
                 let progress = 0;
                 const progressInterval = setInterval(async () => {
                     try {
@@ -322,31 +279,26 @@
                             document.getElementById('progressFill').style.width = '100%';
                             document.getElementById('progressText').textContent = 'Парсинг завершен!';
                             
-                            // Запуск ИИ переводчика
-                            status.innerHTML = '<i class="fas fa-magic"></i> Перевод с помощью ИИ...';
-                            
+                            // Start AI translator
+                            status.textContent = 'Перевод с помощью ИИ...';
                             const translatorResponse = await fetch('/api/start-ai-translator');
                             const translatorData = await translatorResponse.json();
-                            
                             if (!translatorResponse.ok) {
                                 throw new Error(translatorData.error || 'Ошибка перевода');
                             }
                             
-                            // Получение результата
+                            // Get result
                             await new Promise(resolve => setTimeout(resolve, 2000));
-                            
                             const filesResponse = await fetch('/api/files');
                             const filesData = await filesResponse.json();
-                            
                             if (filesData.files && filesData.files.length > 0) {
                                 const latestFile = filesData.files[0];
                                 const downloadResponse = await fetch(`/api/download/${latestFile}`);
                                 const newsData = await downloadResponse.json();
-                                
                                 if (newsData.articles && newsData.articles.length > 0) {
                                     const latestArticle = newsData.articles[0];
                                     displayNews(latestArticle);
-                                    status.innerHTML = '<i class="fas fa-check-circle"></i> Новость успешно получена!';
+                                    status.textContent = 'Новость успешно получена!';
                                 } else {
                                     throw new Error('Новости не найдены');
                                 }
@@ -362,7 +314,7 @@
                 
             } catch (error) {
                 console.error('Error:', error);
-                status.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Ошибка: ${error.message}`;
+                status.textContent = `Ошибка: ${error.message}`;
                 status.className = 'status error';
             } finally {
                 isProcessing = false;
@@ -378,54 +330,39 @@
             const newsDate = document.getElementById('newsDate');
             const newsContent = document.getElementById('newsContent');
             
-            // Форматирование заголовка
-            newsTitle.innerHTML = `📰 ${article.title || 'Новость'}`;
-            
-            // Форматирование даты
+            newsTitle.textContent = article.title || 'Новость';
             const date = new Date();
-            newsDate.innerHTML = `📅 ${date.toLocaleDateString('ru-RU', {
+            newsDate.textContent = date.toLocaleDateString('ru-RU', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
                 hour: '2-digit',
                 minute: '2-digit'
-            })}`;
+            });
             
-            // Форматирование контента с эмодзи и отступами
             let content = article.content || article.text || 'Содержание новости недоступно';
-            
-            // Добавление эмодзи и форматирование
-            content = content
-                .replace(/\n/g, '<br><br>')
-                .replace(/^/, '🌟 ')
-                .replace(/\./g, ' ✨')
-                .replace(/!/g, ' 🎉')
-                .replace(/\?/g, ' 🤔');
-            
+            content = content.replace(/\n/g, '<br><br>');
             newsContent.innerHTML = content;
-            
-            // Показ карточки с анимацией
             newsCard.classList.add('show');
         }
         
-        // Автоматическое обновление статуса
+        // Check status every 10 seconds instead of 5
         setInterval(async () => {
             if (!isProcessing) {
                 try {
                     const response = await fetch('/api/status');
                     const data = await response.json();
-                    
                     const status = document.getElementById('status');
                     if (data.running) {
-                        status.innerHTML = `<i class="fas fa-cog fa-spin"></i> ${data.message}`;
+                        status.textContent = data.message;
                     } else if (data.result_file) {
-                        status.innerHTML = '<i class="fas fa-check-circle"></i> Готов к получению новостей';
+                        status.textContent = 'Готов к работе';
                     }
                 } catch (error) {
                     console.error('Status update error:', error);
                 }
             }
-        }, 5000);
+        }, 10000);
     </script>
 </body>
 </html> 
