@@ -2,7 +2,7 @@ services:
   - type: web
     name: fragrantica-final-web
     env: python
-    buildCommand: pip install -r requirements.txt --no-deps && pip install playwright==1.35.0 --no-deps && playwright install chromium
+    buildCommand: pip install flask==2.3.3 beautifulsoup4==4.12.2 requests==2.31.0 deep-translator==1.11.4 openai==0.28.1 && pip install playwright==1.35.0 --no-deps && playwright install chromium
     startCommand: python3 app.py
     envVars:
       - key: PYTHON_VERSION
