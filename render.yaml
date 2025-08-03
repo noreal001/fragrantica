@@ -2,11 +2,11 @@ services:
   - type: web
     name: fragrantica-parser
     env: python
-    buildCommand: pip install --no-deps -r requirements_render.txt && pip install flask beautifulsoup4 requests deep-translator playwright openai && playwright install chromium
+    buildCommand: pip install -r requirements_web.txt
     startCommand: python3 app.py
     envVars:
       - key: PYTHON_VERSION
-        value: 3.10.12
+        value: 3.9.18
       - key: OPENAI_API_KEY
         sync: false
       - key: SECRET_KEY
