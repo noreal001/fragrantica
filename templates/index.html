@@ -1,1 +1,242 @@
-<!DOCTYPE html><html><head><title>Fragrantica Parser</title></head><body><h1>Fragrantica Parser</h1><button onclick="startParser()">Start Parser</button><button onclick="stopParser()">Stop Parser</button><script>async function startParser() { await fetch("/api/start-parser", {method: "POST"}); } async function stopParser() { await fetch("/api/stop-parser", {method: "POST"}); }</script></body></html>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fragrantica Parser</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #000;
+            color: #fff;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .main-card {
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+        .settings-section {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #ccc;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            background: #222;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #fff;
+        }
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .btn {
+            padding: 12px 24px;
+            font-size: 1em;
+            border-radius: 6px;
+            cursor: pointer;
+            border: none;
+            flex: 1;
+        }
+        .btn-primary {
+            background: #fff;
+            color: #000;
+        }
+        .btn-danger {
+            background: #ff4444;
+            color: #fff;
+        }
+        .btn:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+        }
+        .status {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #ccc;
+        }
+        .status.running {
+            border-color: #44ff44;
+            color: #66ff66;
+        }
+        .status.error {
+            border-color: #ff4444;
+            color: #ff6666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Fragrantica Parser</h1>
+            <p>Настройка и управление парсером новостей</p>
+        </div>
+        
+        <div class="main-card">
+            <div class="status" id="status">
+                Готов к работе
+            </div>
+            
+            <div class="settings-section">
+                <h3>Настройки парсера</h3>
+                <div class="form-group">
+                    <label>Количество новостей</label>
+                    <select id="newsCount">
+                        <option value="1">1 новость</option>
+                        <option value="2">2 новости</option>
+                        <option value="3">3 новости</option>
+                        <option value="4">4 новости</option>
+                        <option value="5" selected>5 новостей</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Язык перевода</label>
+                    <select id="targetLanguage">
+                        <option value="ru" selected>Русский</option>
+                        <option value="en">Английский</option>
+                        <option value="es">Испанский</option>
+                        <option value="fr">Французский</option>
+                        <option value="de">Немецкий</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button class="btn btn-primary" id="startBtn" onclick="startParser()">
+                    Запустить парсер
+                </button>
+                <button class="btn btn-danger" id="stopBtn" onclick="stopParser()" disabled>
+                    Остановить парсер
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let isProcessing = false;
+        
+        async function startParser() {
+            if (isProcessing) return;
+            isProcessing = true;
+            
+            const startBtn = document.getElementById('startBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            const status = document.getElementById('status');
+            
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            status.textContent = 'Запуск парсера...';
+            status.className = 'status running';
+            
+            try {
+                const settings = {
+                    newsCount: document.getElementById('newsCount').value,
+                    targetLanguage: document.getElementById('targetLanguage').value
+                };
+                
+                const response = await fetch('/api/start-parser', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(settings)
+                });
+                
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || 'Ошибка запуска парсера');
+                }
+                
+                status.textContent = 'Парсер запущен';
+                
+            } catch (error) {
+                console.error('Error:', error);
+                status.textContent = `Ошибка: ${error.message}`;
+                status.className = 'status error';
+            } finally {
+                isProcessing = false;
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+            }
+        }
+        
+        async function stopParser() {
+            try {
+                const response = await fetch('/api/stop-parser', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('status').textContent = 'Парсер остановлен';
+                    document.getElementById('status').className = 'status';
+                    document.getElementById('startBtn').disabled = false;
+                    document.getElementById('stopBtn').disabled = true;
+                } else {
+                    throw new Error(data.error || 'Ошибка остановки парсера');
+                }
+            } catch (error) {
+                console.error('Error stopping parser:', error);
+                document.getElementById('status').textContent = `Ошибка остановки: ${error.message}`;
+                document.getElementById('status').className = 'status error';
+            }
+        }
+        
+        // Check status every 10 seconds
+        setInterval(async () => {
+            if (!isProcessing) {
+                try {
+                    const response = await fetch('/api/status');
+                    const data = await response.json();
+                    const status = document.getElementById('status');
+                    const startBtn = document.getElementById('startBtn');
+                    const stopBtn = document.getElementById('stopBtn');
+                    
+                    if (data.running) {
+                        status.textContent = data.message;
+                        status.className = 'status running';
+                        startBtn.disabled = true;
+                        stopBtn.disabled = false;
+                    } else {
+                        status.textContent = 'Готов к работе';
+                        status.className = 'status';
+                        startBtn.disabled = false;
+                        stopBtn.disabled = true;
+                    }
+                } catch (error) {
+                    console.error('Status update error:', error);
+                }
+            }
+        }, 10000);
+    </script>
+</body>
+</html>
