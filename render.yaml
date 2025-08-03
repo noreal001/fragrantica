@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: fragrantica-parser
+    name: fragrantica-parser-v2
     env: python
     buildCommand: pip install -r requirements.txt
     startCommand: python3 app.py
