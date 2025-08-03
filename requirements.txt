@@ -14,7 +14,7 @@ webdriver-manager==4.0.1
 
 # Playwright (резервный вариант)
 playwright==1.35.0
-greenlet==2.0.2
+greenlet>=3.0.0
 
 # Утилиты
 python-dotenv==1.0.0
