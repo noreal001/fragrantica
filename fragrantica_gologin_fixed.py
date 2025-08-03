@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Исправленный парсер новостей Fragrantica с GoLogin
-Правильная конфигурация для обхода Cloudflare защиты
+Упрощенный парсер новостей Fragrantica для Render
+Без GoLogin для стабильной работы на облачной платформе
 """
 
 import time
@@ -14,7 +14,6 @@ from typing import List, Dict, Optional
 import re
 import random
 from playwright.sync_api import sync_playwright
-from gologin import GoLogin
 from bs4 import BeautifulSoup
 
 # Настройка логирования
@@ -22,114 +21,69 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('fragrantica_gologin_fixed.log', encoding='utf-8'),
+        logging.FileHandler('fragrantica_simple_parser.log', encoding='utf-8'),
         logging.StreamHandler()
     ]
 )
 logger = logging.getLogger(__name__)
 
-class FragranticaGoLoginFixedParser:
-    """Исправленный парсер с GoLogin"""
+class FragranticaSimpleParser:
+    """Упрощенный парсер для Render"""
     
-    def __init__(self, gologin_token: str = None):
+    def __init__(self):
         self.base_url = "https://www.fragrantica.com"
         self.translator = GoogleTranslator(source='en', target='ru')
-        self.gologin_token = gologin_token
         self.playwright = None
         self.browser = None
         
-        # Инициализация
-        self._setup_gologin()
+        # Инициализация Playwright
+        self._setup_playwright()
     
-    def _setup_gologin(self):
-        """Настройка GoLogin с правильной конфигурацией"""
+    def _setup_playwright(self):
+        """Настройка Playwright"""
         try:
-            if self.gologin_token:
-                # Правильная конфигурация GoLogin
-                self.gologin = GoLogin({
-                    'token': self.gologin_token,
-                    'profile_id': 'default',
-                    'local': True,  # Используем локальный профиль
-                    'credentials_enable_service': False,
-                    'credentials_enable_autosave': False,
-                    'profile': {
-                        'name': 'fragrantica_parser',
-                        'os': 'mac',
-                        'navigator': {
-                            'userAgent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                            'resolution': '1920x1080',
-                            'language': ['en-US', 'en'],
-                            'platform': 'MacIntel'
-                        },
-                        'proxy': {
-                            'mode': 'none'
-                        },
-                        'webRTC': {
-                            'mode': 'alert',
-                            'ipAddress': ''
-                        }
-                    }
-                })
-                logger.info("GoLogin инициализирован с правильной конфигурацией")
-            else:
-                self.gologin = None
-                logger.info("GoLogin не используется")
-            
-            # Инициализация Playwright
             self.playwright = sync_playwright().start()
-            
+            logger.info("Playwright инициализирован")
         except Exception as e:
-            logger.error(f"Ошибка при инициализации GoLogin: {e}")
-            # Продолжаем без GoLogin
-            self.gologin = None
-            self.playwright = sync_playwright().start()
+            logger.error(f"Ошибка при инициализации Playwright: {e}")
+            raise
     
     def _create_browser_context(self):
-        """Создание контекста браузера"""
+        """Создание контекста браузера с антидетект настройками"""
         try:
-            if self.gologin:
-                # Используем GoLogin профиль
-                debugger_address = self.gologin.start()
-                logger.info(f"GoLogin debugger address: {debugger_address}")
-                
-                self.browser = self.playwright.chromium.connect_over_cdp(debugger_address)
-                logger.info("Браузер подключен через GoLogin")
-                
-                # Создаем контекст
-                context = self.browser.new_context()
-                
-            else:
-                # Используем стандартный браузер с антидетект настройками
-                self.browser = self.playwright.chromium.launch(
-                    headless=False,  # Показываем браузер для отладки
-                    args=[
-                        '--no-sandbox',
-                        '--disable-dev-shm-usage',
-                        '--disable-blink-features=AutomationControlled',
-                        '--disable-extensions',
-                        '--disable-plugins',
-                        '--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-                    ]
-                )
-                logger.info("Браузер запущен в стандартном режиме")
-                
-                # Создаем контекст с дополнительными настройками
-                context = self.browser.new_context(
-                    viewport={'width': 1920, 'height': 1080},
-                    user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                    extra_http_headers={
-                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-                        'Accept-Language': 'en-US,en;q=0.9,ru;q=0.8',
-                        'Accept-Encoding': 'gzip, deflate, br',
-                        'Connection': 'keep-alive',
-                        'Upgrade-Insecure-Requests': '1',
-                        'Sec-Fetch-Dest': 'document',
-                        'Sec-Fetch-Mode': 'navigate',
-                        'Sec-Fetch-Site': 'none',
-                        'Sec-Fetch-User': '?1',
-                        'Cache-Control': 'max-age=0'
-                    }
-                )
+            # Используем стандартный браузер с антидетект настройками
+            self.browser = self.playwright.chromium.launch(
+                headless=True,  # Безголовый режим для Render
+                args=[
+                    '--no-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-blink-features=AutomationControlled',
+                    '--disable-extensions',
+                    '--disable-plugins',
+                    '--disable-images',  # Ускоряем загрузку
+                    '--disable-javascript',  # Отключаем JS для ускорения
+                    '--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                ]
+            )
+            logger.info("Браузер запущен в стандартном режиме")
+            
+            # Создаем контекст с дополнительными настройками
+            context = self.browser.new_context(
+                viewport={'width': 1920, 'height': 1080},
+                user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                extra_http_headers={
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.9,ru;q=0.8',
+                    'Accept-Encoding': 'gzip, deflate, br',
+                    'Connection': 'keep-alive',
+                    'Upgrade-Insecure-Requests': '1',
+                    'Sec-Fetch-Dest': 'document',
+                    'Sec-Fetch-Mode': 'navigate',
+                    'Sec-Fetch-Site': 'none',
+                    'Sec-Fetch-User': '?1',
+                    'Cache-Control': 'max-age=0'
+                }
+            )
             
             # Скрываем признаки автоматизации
             context.add_init_script("""
@@ -142,13 +96,7 @@ class FragranticaGoLoginFixedParser:
             
         except Exception as e:
             logger.error(f"Ошибка при создании контекста браузера: {e}")
-            # Пробуем без GoLogin
-            if self.gologin:
-                logger.info("Пробую без GoLogin...")
-                self.gologin = None
-                return self._create_browser_context()
-            else:
-                raise
+            raise
     
     def _smart_delay(self, base_delay: float = 2.0):
         """Умная задержка с вариацией"""
@@ -523,7 +471,7 @@ class FragranticaGoLoginFixedParser:
         """Сохранение новостей в JSON файл"""
         if not filename:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"fragrantica_gologin_fixed_news_{timestamp}.json"
+            filename = f"fragrantica_simple_news_{timestamp}.json"
         
         try:
             with open(filename, 'w', encoding='utf-8') as f:
@@ -561,8 +509,6 @@ class FragranticaGoLoginFixedParser:
                 self.browser.close()
             if self.playwright:
                 self.playwright.stop()
-            if self.gologin:
-                self.gologin.stop()
             logger.info("Браузер и Playwright закрыты")
         except Exception as e:
             logger.error(f"Ошибка при закрытии: {e}")
@@ -573,20 +519,15 @@ def main():
     
     try:
         print("\n" + "="*60)
-        print("🎯 ИСПРАВЛЕННЫЙ ПАРСЕР FRAGRANTICA С GOLOGIN")
+        print("🎯 УПРОЩЕННЫЙ ПАРСЕР FRAGRANTICA ДЛЯ RENDER")
         print("="*60)
-        print("Этот парсер использует исправленную конфигурацию GoLogin")
+        print("Этот парсер оптимизирован для работы на Render")
         print("="*60)
         
-        # Используем токен GoLogin
-        gologin_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2ODhmMWM3ZDMwMmNjMjU3OGRmMDJkYzEiLCJ0eXBlIjoiZGV2Iiwiand0aWQiOiI2ODhmMWQxNTMwMmNjMjU3OGRmMGQ2M2IifQ.ZqTJqaxx5AFA5-mLWiAtBa0y5sat4lL1ttNFuq93kqM"
-        
-        print("✅ Используется токен GoLogin")
-        
-        parser = FragranticaGoLoginFixedParser(gologin_token=gologin_token)
+        parser = FragranticaSimpleParser()
         
         # Получение новостей с полным содержанием
-        logger.info("Запуск исправленного парсера с GoLogin...")
+        logger.info("Запуск упрощенного парсера...")
         news_items = parser.extract_news_from_main_page()
         
         if not news_items:
@@ -610,7 +551,7 @@ def main():
     except Exception as e:
         logger.error(f"Критическая ошибка: {e}")
         print(f"\n❌ Произошла ошибка: {e}")
-        print("💡 Проверьте логи в файле fragrantica_gologin_fixed.log")
+        print("💡 Проверьте логи в файле fragrantica_simple_parser.log")
     
     finally:
         # Закрываем браузер

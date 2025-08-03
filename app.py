@@ -73,7 +73,7 @@ def run_parser():
             
             # Ищем созданный JSON файл
             for filename in os.listdir('.'):
-                if filename.startswith('fragrantica_gologin_fixed_news_') and filename.endswith('.json'):
+                if filename.startswith('fragrantica_simple_news_') and filename.endswith('.json'):
                     parser_status['result_file'] = filename
                     break
             
@@ -181,7 +181,7 @@ def start_ai_translator():
         return jsonify({'error': 'Процесс уже запущен'})
     
     # Проверяем наличие файла с результатами парсинга
-    json_files = [f for f in os.listdir('.') if f.startswith('fragrantica_gologin_fixed_news_') and f.endswith('.json')]
+    json_files = [f for f in os.listdir('.') if f.startswith('fragrantica_simple_news_') and f.endswith('.json')]
     if not json_files:
         return jsonify({'error': 'Сначала запустите парсер для получения данных'})
     

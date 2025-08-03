@@ -179,7 +179,7 @@ def main():
         return
     
     # Загружаем данные из JSON файла
-    input_file = "fragrantica_gologin_fixed_news_20250803_113644.json"
+    input_file = "fragrantica_simple_news_20250803_113644.json"
     
     try:
         with open(input_file, 'r', encoding='utf-8') as f:
@@ -203,7 +203,7 @@ def main():
         
     except FileNotFoundError:
         print(f"❌ Файл {input_file} не найден!")
-        print("Сначала запустите парсер для получения новостей")
+        print("Сначала запустите парсер для получения данных")
     except Exception as e:
         logger.error(f"Критическая ошибка: {e}")
         print(f"\n❌ Произошла ошибка: {e}")
