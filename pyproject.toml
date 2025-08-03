@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fragrantica-web"
+version = "1.0.0"
+description = "Fragrantica Parser Web Interface"
+requires-python = ">=3.9"
+dependencies = [
+    "flask==2.3.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "black",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["*"]
+exclude = ["tests*"] 

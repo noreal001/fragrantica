@@ -2,7 +2,7 @@ services:
   - type: web
     name: fragrantica-web-app
     env: python
-    buildCommand: pip install flask==2.3.3
+    buildCommand: pip install -e .
     startCommand: python3 app.py
     envVars:
       - key: PYTHON_VERSION
