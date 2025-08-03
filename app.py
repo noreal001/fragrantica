@@ -14,6 +14,7 @@ from flask import Flask, render_template, request, jsonify, send_file
 from werkzeug.utils import secure_filename
 import threading
 import time
+import signal
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
@@ -36,9 +37,12 @@ parser_status = {
     'error': None
 }
 
-def run_parser():
-    """Запуск парсера в отдельном потоке"""
-    global parser_status
+# Глобальная переменная для хранения процесса
+current_process = None
+
+def run_parser_with_settings(settings):
+    """Запуск парсера с настройками в отдельном потоке"""
+    global parser_status, current_process
     
     try:
         parser_status['running'] = True
@@ -46,18 +50,28 @@ def run_parser():
         parser_status['message'] = 'Запуск парсера...'
         parser_status['error'] = None
         
-        logger.info("Запуск парсера Fragrantica...")
+        logger.info(f"Запуск парсера Fragrantica с настройками: {settings}")
+        
+        # Создаем команду с настройками
+        cmd = ['python3', 'fragrantica_gologin_fixed.py']
+        
+        # Добавляем параметры если они есть
+        if settings.get('newsCount'):
+            cmd.extend(['--count', str(settings['newsCount'])])
+        
+        if settings.get('targetLanguage'):
+            cmd.extend(['--language', settings['targetLanguage']])
         
         # Запускаем парсер
-        process = subprocess.Popen(
-            ['python3', 'fragrantica_gologin_fixed.py'],
+        current_process = subprocess.Popen(
+            cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True
         )
         
         # Отслеживаем прогресс
-        while process.poll() is None:
+        while current_process.poll() is None:
             parser_status['progress'] += 10
             if parser_status['progress'] > 90:
                 parser_status['progress'] = 90
@@ -65,9 +79,9 @@ def run_parser():
             time.sleep(2)
         
         # Получаем результат
-        stdout, stderr = process.communicate()
+        stdout, stderr = current_process.communicate()
         
-        if process.returncode == 0:
+        if current_process.returncode == 0:
             parser_status['progress'] = 100
             parser_status['message'] = 'Парсинг завершен успешно!'
             
@@ -90,10 +104,15 @@ def run_parser():
     
     finally:
         parser_status['running'] = False
+        current_process = None
+
+def run_parser():
+    """Запуск парсера в отдельном потоке (для обратной совместимости)"""
+    run_parser_with_settings({})
 
 def run_ai_translator():
     """Запуск ИИ переводчика в отдельном потоке"""
-    global parser_status
+    global parser_status, current_process
     
     try:
         parser_status['running'] = True
@@ -110,7 +129,7 @@ def run_ai_translator():
             return
         
         # Запускаем ИИ переводчик
-        process = subprocess.Popen(
+        current_process = subprocess.Popen(
             ['python3', 'ai_translator.py'],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -118,7 +137,7 @@ def run_ai_translator():
         )
         
         # Отслеживаем прогресс
-        while process.poll() is None:
+        while current_process.poll() is None:
             parser_status['progress'] += 5
             if parser_status['progress'] > 90:
                 parser_status['progress'] = 90
@@ -126,9 +145,9 @@ def run_ai_translator():
             time.sleep(3)
         
         # Получаем результат
-        stdout, stderr = process.communicate()
+        stdout, stderr = current_process.communicate()
         
-        if process.returncode == 0:
+        if current_process.returncode == 0:
             parser_status['progress'] = 100
             parser_status['message'] = 'ИИ перевод завершен успешно!'
             
@@ -151,6 +170,37 @@ def run_ai_translator():
     
     finally:
         parser_status['running'] = False
+        current_process = None
+
+def stop_parser():
+    """Остановка парсера"""
+    global current_process, parser_status
+    
+    if current_process and current_process.poll() is None:
+        try:
+            # Отправляем сигнал завершения
+            current_process.terminate()
+            
+            # Ждем завершения
+            try:
+                current_process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                # Принудительно завершаем если не завершился
+                current_process.kill()
+                current_process.wait()
+            
+            parser_status['running'] = False
+            parser_status['message'] = 'Парсер остановлен'
+            current_process = None
+            
+            logger.info("Парсер успешно остановлен")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Ошибка при остановке парсера: {e}")
+            return False
+    
+    return False
 
 @app.route('/')
 def index():
@@ -162,17 +212,33 @@ def get_status():
     """Получение статуса парсера"""
     return jsonify(parser_status)
 
-@app.route('/api/start-parser')
+@app.route('/api/start-parser', methods=['GET', 'POST'])
 def start_parser():
     """Запуск парсера"""
     if parser_status['running']:
         return jsonify({'error': 'Парсер уже запущен'})
     
-    thread = threading.Thread(target=run_parser)
+    # Получаем настройки из POST запроса
+    settings = {}
+    if request.method == 'POST':
+        try:
+            settings = request.get_json() or {}
+        except Exception as e:
+            logger.error(f"Ошибка парсинга JSON: {e}")
+    
+    thread = threading.Thread(target=run_parser_with_settings, args=(settings,))
     thread.daemon = True
     thread.start()
     
     return jsonify({'message': 'Парсер запущен'})
+
+@app.route('/api/stop-parser', methods=['POST'])
+def stop_parser_endpoint():
+    """Остановка парсера"""
+    if stop_parser():
+        return jsonify({'message': 'Парсер остановлен'})
+    else:
+        return jsonify({'error': 'Парсер не был запущен или уже остановлен'})
 
 @app.route('/api/start-ai-translator')
 def start_ai_translator():
@@ -195,9 +261,14 @@ def start_ai_translator():
 def download_file(filename):
     """Скачивание файла"""
     try:
-        return send_file(filename, as_attachment=True)
+        # Читаем содержимое файла и возвращаем как JSON
+        with open(filename, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return jsonify(data)
     except FileNotFoundError:
         return jsonify({'error': 'Файл не найден'}), 404
+    except Exception as e:
+        return jsonify({'error': f'Ошибка чтения файла: {str(e)}'}), 500
 
 @app.route('/api/files')
 def list_files():
@@ -212,6 +283,8 @@ def list_files():
                 'modified': datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
             })
     
+    # Сортируем по дате изменения (новые сначала)
+    files.sort(key=lambda x: x['modified'], reverse=True)
     return jsonify({'files': files})
 
 @app.route('/health')
