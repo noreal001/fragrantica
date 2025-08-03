@@ -27,8 +27,10 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
-# Создаем папку для загрузок если её нет
+# Создаем папки если их нет
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs('data/output', exist_ok=True)
+os.makedirs('data/logs', exist_ok=True)
 
 # Глобальные переменные для отслеживания статуса
 parser_status = {
@@ -43,7 +45,7 @@ def load_parser_status():
     """Загрузка статуса из файла"""
     global parser_status
     try:
-        with open('parser_status.json', 'r', encoding='utf-8') as f:
+        with open('data/parser_status.json', 'r', encoding='utf-8') as f:
             parser_status = json.load(f)
     except FileNotFoundError:
         reset_parser_status()
@@ -51,7 +53,7 @@ def load_parser_status():
 def save_parser_status():
     """Сохранение статуса в файл"""
     try:
-        with open('parser_status.json', 'w', encoding='utf-8') as f:
+        with open('data/parser_status.json', 'w', encoding='utf-8') as f:
             json.dump(parser_status, f, ensure_ascii=False, indent=2)
     except Exception as e:
         logger.error(f"Ошибка сохранения статуса: {e}")
@@ -93,7 +95,7 @@ def run_parser_with_settings(settings):
         parser_status['message'] = 'Используем тестовый парсер...'
         save_parser_status()
         
-        cmd = ['python3', 'test_parser.py']
+        cmd = ['python3', 'parsers/simple/test_parser.py']
         current_process = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
@@ -126,9 +128,9 @@ def run_parser_with_settings(settings):
             
             # Ждем немного и ищем созданный JSON файл
             time.sleep(2)
-            for filename in os.listdir('.'):
+            for filename in os.listdir('data/output/'):
                 if filename.startswith('fragrantica_simple_news_') and filename.endswith('.json'):
-                    parser_status['result_file'] = filename
+                    parser_status['result_file'] = f'data/output/{filename}'
                     break
             
             if parser_status['result_file']:
@@ -177,7 +179,7 @@ def run_ai_translator():
         
         # Запускаем ИИ переводчик
         current_process = subprocess.Popen(
-            ['python3', 'ai_translator.py'],
+            ['python3', 'utils/translator.py'],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True
@@ -199,9 +201,9 @@ def run_ai_translator():
             parser_status['message'] = 'ИИ перевод завершен успешно!'
             
             # Ищем созданный JSON файл
-            for filename in os.listdir('.'):
+            for filename in os.listdir('data/output/'):
                 if filename.startswith('fragrantica_ai_translated_news_') and filename.endswith('.json'):
-                    parser_status['result_file'] = filename
+                    parser_status['result_file'] = f'data/output/{filename}'
                     break
             
             logger.info(f"ИИ переводчик завершен успешно. Файл: {parser_status['result_file']}")
@@ -271,7 +273,7 @@ def test_parser():
     """Тестирование парсера"""
     try:
         # Запускаем тестовый парсер
-        result = subprocess.run(['python3', 'test_parser.py'], 
+        result = subprocess.run(['python3', 'parsers/simple/test_parser.py'], 
                               capture_output=True, text=True, timeout=30)
         
         if result.returncode == 0:
@@ -294,9 +296,9 @@ def clear_files():
     """Очистка старых файлов"""
     try:
         deleted_count = 0
-        for filename in os.listdir('.'):
+        for filename in os.listdir('data/output/'):
             if filename.startswith('fragrantica_simple_news_') and filename.endswith('.json'):
-                os.remove(filename)
+                os.remove(f'data/output/{filename}')
                 deleted_count += 1
         
         return jsonify({'message': f'Удалено файлов: {deleted_count}'})
@@ -338,7 +340,7 @@ def start_ai_translator():
         return jsonify({'error': 'Процесс уже запущен'})
     
     # Проверяем наличие файла с результатами парсинга
-    json_files = [f for f in os.listdir('.') if f.startswith('fragrantica_simple_news_') and f.endswith('.json')]
+    json_files = [f for f in os.listdir('data/output/') if f.startswith('fragrantica_simple_news_') and f.endswith('.json')]
     if not json_files:
         return jsonify({'error': 'Сначала запустите парсер для получения данных'})
     
@@ -353,7 +355,8 @@ def download_file(filename):
     """Скачивание файла"""
     try:
         # Читаем содержимое файла и возвращаем как JSON
-        with open(filename, 'r', encoding='utf-8') as f:
+        filepath = f'data/output/{filename}'
+        with open(filepath, 'r', encoding='utf-8') as f:
             data = json.load(f)
         return jsonify(data)
     except FileNotFoundError:
@@ -365,9 +368,9 @@ def download_file(filename):
 def list_files():
     """Список доступных файлов"""
     files = []
-    for filename in os.listdir('.'):
+    for filename in os.listdir('data/output/'):
         if filename.endswith('.json') and 'fragrantica' in filename:
-            stat = os.stat(filename)
+            stat = os.stat(f'data/output/{filename}')
             files.append({
                 'name': filename,
                 'size': stat.st_size,
