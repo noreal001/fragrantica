@@ -2,7 +2,7 @@ services:
   - type: web
     name: fragrantica-final-web
     env: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt && playwright install chromium
     startCommand: python3 app.py
     envVars:
       - key: PYTHON_VERSION
