@@ -1,7 +1,21 @@
+# Основные зависимости
 flask==2.3.3
 beautifulsoup4==4.12.2
 requests==2.31.0
 deep-translator==1.11.4
-playwright==1.35.0
 openai==0.28.1
-greenlet==2.0.2 
+
+# GoLogin официальный SDK
+gologin==1.0.0
+
+# Selenium для GoLogin
+selenium==4.15.2
+webdriver-manager==4.0.1
+
+# Playwright (резервный вариант)
+playwright==1.35.0
+greenlet==2.0.2
+
+# Утилиты
+python-dotenv==1.0.0
+lxml==4.9.3 

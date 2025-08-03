@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bahur Inc. - Fragrantica Parser</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Fragrantica Parser</h1>
+            <p>Bahur Inc.</p>
+        </div>
+        
+        <div class="main-card">
+            <div class="status" id="status">
+                Готов к работе
+            </div>
+            
+            <div class="settings-section">
+                <h3>Настройки</h3>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Количество новостей</label>
+                        <select id="newsCount">
+                            <option value="1">1 новость</option>
+                            <option value="2">2 новости</option>
+                            <option value="3">3 новости</option>
+                            <option value="4">4 новости</option>
+                            <option value="5" selected>5 новостей</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Язык перевода</label>
+                        <select id="targetLanguage">
+                            <option value="ru" selected>Русский</option>
+                            <option value="en">Английский</option>
+                            <option value="es">Испанский</option>
+                            <option value="fr">Французский</option>
+                            <option value="de">Немецкий</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button class="btn btn-primary" id="startBtn" onclick="startParser()">
+                    Запустить
+                </button>
+                <button class="btn btn-danger" id="stopBtn" onclick="stopParser()" disabled>
+                    Остановить
+                </button>
+            </div>
+            
+            <div class="button-group">
+                <button class="btn btn-warning" id="resetBtn" onclick="resetStatus()">
+                    Сбросить статус
+                </button>
+                <button class="btn btn-info" id="testBtn" onclick="testParser()">
+                    Тест парсера
+                </button>
+                <button class="btn btn-info" id="clearBtn" onclick="clearFiles()">
+                    Очистить файлы
+                </button>
+            </div>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Получение новостей...</p>
+            </div>
+            
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                </div>
+                <p class="progress-text" id="progressText">Подготовка...</p>
+            </div>
+            
+            <div class="news-card" id="newsCard">
+                <div class="news-title" id="newsTitle"></div>
+                <div class="news-date" id="newsDate"></div>
+                <div class="news-content" id="newsContent"></div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p><span class="brand">Bahur Inc.</span> - AI Translation Technology</p>
+        </div>
+    </div>
+    
+    <script src="/static/js/app.js"></script>
+</body>
+</html> 

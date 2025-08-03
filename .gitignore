@@ -71,3 +71,31 @@ uploads/
 
 # JSON results (optional - можно включить для демонстрации)
 # *.json 
+# Данные
+data/output/*.json
+data/logs/*.log
+
+# Конфигурация
+.env
+
+# Виртуальное окружение
+venv/
+env/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Системные файлы
+.DS_Store
+Thumbs.db

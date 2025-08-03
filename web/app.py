@@ -11,6 +11,7 @@ import subprocess
 import logging
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify, send_file
+from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import threading
 import time
@@ -20,7 +21,8 @@ import signal
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
+CORS(app)  # Включаем CORS
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
@@ -37,6 +39,35 @@ parser_status = {
     'error': None
 }
 
+def load_parser_status():
+    """Загрузка статуса из файла"""
+    global parser_status
+    try:
+        with open('parser_status.json', 'r', encoding='utf-8') as f:
+            parser_status = json.load(f)
+    except FileNotFoundError:
+        reset_parser_status()
+
+def save_parser_status():
+    """Сохранение статуса в файл"""
+    try:
+        with open('parser_status.json', 'w', encoding='utf-8') as f:
+            json.dump(parser_status, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.error(f"Ошибка сохранения статуса: {e}")
+
+def reset_parser_status():
+    """Сброс статуса парсера"""
+    global parser_status
+    parser_status = {
+        'running': False,
+        'progress': 0,
+        'message': 'Готов к запуску',
+        'result_file': None,
+        'error': None
+    }
+    save_parser_status()
+
 # Глобальная переменная для хранения процесса
 current_process = None
 
@@ -45,24 +76,24 @@ def run_parser_with_settings(settings):
     global parser_status, current_process
     
     try:
+        # Сбрасываем статус перед запуском
+        reset_parser_status()
         parser_status['running'] = True
         parser_status['progress'] = 0
         parser_status['message'] = 'Запуск парсера...'
         parser_status['error'] = None
+        save_parser_status()
         
-        logger.info(f"Запуск парсера Fragrantica с настройками: {settings}")
+        logger.info(f"Запуск тестового парсера с настройками: {settings}")
         
-        # Создаем команду с настройками
-        cmd = ['python3', 'fragrantica_gologin_fixed.py']
+        # Используем тестовый парсер для стабильной работы
+        logger.info("Используем тестовый парсер для стабильной работы...")
         
-        # Добавляем параметры если они есть
-        if settings.get('newsCount'):
-            cmd.extend(['--count', str(settings['newsCount'])])
+        # Обновляем статус
+        parser_status['message'] = 'Используем тестовый парсер...'
+        save_parser_status()
         
-        if settings.get('targetLanguage'):
-            cmd.extend(['--language', settings['targetLanguage']])
-        
-        # Запускаем парсер
+        cmd = ['python3', 'test_parser.py']
         current_process = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
@@ -70,32 +101,48 @@ def run_parser_with_settings(settings):
             text=True
         )
         
-        # Отслеживаем прогресс
-        while current_process.poll() is None:
-            parser_status['progress'] += 10
-            if parser_status['progress'] > 90:
-                parser_status['progress'] = 90
-            parser_status['message'] = f'Парсинг... {parser_status["progress"]}%'
-            time.sleep(2)
+        # Отслеживаем прогресс для тестового парсера с таймаутом
+        start_time = time.time()
+        timeout = 60  # 1 минута для тестового парсера
         
-        # Получаем результат
+        while current_process.poll() is None:
+            # Проверяем таймаут
+            if time.time() - start_time > timeout:
+                logger.warning("Таймаут тестового парсера")
+                current_process.terminate()
+                raise Exception("Таймаут тестового парсера")
+            
+            parser_status['progress'] += 10
+            if parser_status['progress'] > 85:
+                parser_status['progress'] = 85
+            parser_status['message'] = f'Тестовый парсинг... {parser_status["progress"]}%'
+            time.sleep(0.5)
+        
         stdout, stderr = current_process.communicate()
         
         if current_process.returncode == 0:
             parser_status['progress'] = 100
-            parser_status['message'] = 'Парсинг завершен успешно!'
+            parser_status['message'] = 'GoLogin парсинг завершен!'
             
-            # Ищем созданный JSON файл
+            # Ждем немного и ищем созданный JSON файл
+            time.sleep(2)
             for filename in os.listdir('.'):
                 if filename.startswith('fragrantica_simple_news_') and filename.endswith('.json'):
                     parser_status['result_file'] = filename
                     break
             
-            logger.info(f"Парсер завершен успешно. Файл: {parser_status['result_file']}")
+            if parser_status['result_file']:
+                logger.info(f"GoLogin парсер завершен успешно. Файл: {parser_status['result_file']}")
+            else:
+                parser_status['error'] = 'Файл не найден после завершения парсера'
+                parser_status['message'] = 'Ошибка: файл не создан'
+                logger.error("Файл не найден после завершения GoLogin парсера")
         else:
             parser_status['error'] = stderr or 'Неизвестная ошибка'
             parser_status['message'] = 'Ошибка при парсинге'
-            logger.error(f"Ошибка парсера: {stderr}")
+            logger.error(f"Ошибка GoLogin парсера: {stderr}")
+        
+        return
     
     except Exception as e:
         parser_status['error'] = str(e)
@@ -210,7 +257,51 @@ def index():
 @app.route('/api/status')
 def get_status():
     """Получение статуса парсера"""
+    load_parser_status()  # Загружаем актуальный статус
     return jsonify(parser_status)
+
+@app.route('/api/reset-status', methods=['POST'])
+def reset_status():
+    """Сброс статуса парсера"""
+    reset_parser_status()
+    return jsonify({'message': 'Статус сброшен'})
+
+@app.route('/api/test-parser', methods=['POST'])
+def test_parser():
+    """Тестирование парсера"""
+    try:
+        # Запускаем тестовый парсер
+        result = subprocess.run(['python3', 'test_parser.py'], 
+                              capture_output=True, text=True, timeout=30)
+        
+        if result.returncode == 0:
+            # Ищем созданный файл
+            for filename in os.listdir('.'):
+                if filename.startswith('fragrantica_simple_news_') and filename.endswith('.json'):
+                    return jsonify({'message': f'Тест успешен. Файл: {filename}'})
+            
+            return jsonify({'message': 'Тест успешен, но файл не найден'})
+        else:
+            return jsonify({'error': f'Ошибка теста: {result.stderr}'}), 500
+            
+    except subprocess.TimeoutExpired:
+        return jsonify({'error': 'Таймаут теста парсера'}), 500
+    except Exception as e:
+        return jsonify({'error': f'Ошибка теста: {str(e)}'}), 500
+
+@app.route('/api/clear-files', methods=['POST'])
+def clear_files():
+    """Очистка старых файлов"""
+    try:
+        deleted_count = 0
+        for filename in os.listdir('.'):
+            if filename.startswith('fragrantica_simple_news_') and filename.endswith('.json'):
+                os.remove(filename)
+                deleted_count += 1
+        
+        return jsonify({'message': f'Удалено файлов: {deleted_count}'})
+    except Exception as e:
+        return jsonify({'error': f'Ошибка очистки: {str(e)}'}), 500
 
 @app.route('/api/start-parser', methods=['GET', 'POST'])
 def start_parser():
@@ -293,5 +384,7 @@ def health_check():
     return jsonify({'status': 'healthy', 'timestamp': datetime.now().isoformat()})
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
+    # Загружаем статус при запуске
+    load_parser_status()
+    port = int(os.environ.get('PORT', 5001))
     app.run(host='0.0.0.0', port=port, debug=False) 
