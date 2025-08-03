@@ -2,11 +2,11 @@ services:
   - type: web
     name: fragrantica-parser
     env: python
-    buildCommand: pip install -r requirements_render.txt && playwright install chromium
+    buildCommand: pip install --only-binary=greenlet -r requirements_render.txt && playwright install chromium
     startCommand: python3 app.py
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.7
+        value: 3.12.7
       - key: OPENAI_API_KEY
         sync: false
       - key: SECRET_KEY
